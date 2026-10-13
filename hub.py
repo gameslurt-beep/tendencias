@@ -407,38 +407,45 @@ def execute_reddit_trends(subreddit=None, limit=10):
         num_in = input("👉 Quantos tópicos coletar? [Padrão: 10]: ").strip()
         limit = int(num_in) if num_in.isdigit() else 10
 
-    clean_sub = subreddit.replace('r/', '').replace('@', '').strip()
-    print(f"\n🔍 Buscando tópicos em alta e dores do público em 'r/{clean_sub}'...")
+    clean_input = subreddit.replace('@', '').strip()
+    is_specific_sub = " " not in clean_input and not clean_input.startswith("http")
+    sub_name = clean_input.replace('r/', '') if is_specific_sub else "reddit"
+
+    print(f"\n🔍 Buscando discussões e relatos no Reddit sobre: '{clean_input}'...")
 
     posts = []
-    # Estratégia 1: Tentar RSS com Headers Especializados
-    rss_url = f"https://www.reddit.com/r/{clean_sub}.rss"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0'}
+    # Estratégia 1: Se for subreddit único, tenta RSS
+    if is_specific_sub:
+        rss_url = f"https://www.reddit.com/r/{sub_name}.rss"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0'}
+        try:
+            r = httpx.get(rss_url, headers=headers, timeout=6.0, follow_redirects=True)
+            if r.status_code == 200 and len(r.text) > 500:
+                soup = BeautifulSoup(r.text, 'html.parser')
+                entries = soup.find_all('entry')
+                for e in entries[:limit]:
+                    title = e.find('title').text if e.find('title') else 'Sem título'
+                    link_tag = e.find('link')
+                    link = link_tag.get('href') if link_tag else ''
+                    content_tag = e.find('content')
+                    body_clean = ""
+                    if content_tag:
+                        c_soup = BeautifulSoup(content_tag.text, 'html.parser')
+                        body_clean = c_soup.get_text().strip().replace('\n', ' ')[:250]
+                    posts.append({'title': title, 'link': link, 'content': body_clean})
+        except Exception:
+            pass
 
-    try:
-        r = httpx.get(rss_url, headers=headers, timeout=6.0, follow_redirects=True)
-        if r.status_code == 200 and len(r.text) > 500:
-            soup = BeautifulSoup(r.text, 'html.parser')
-            entries = soup.find_all('entry')
-            for e in entries[:limit]:
-                title = e.find('title').text if e.find('title') else 'Sem título'
-                link_tag = e.find('link')
-                link = link_tag.get('href') if link_tag else ''
-                content_tag = e.find('content')
-                body_clean = ""
-                if content_tag:
-                    c_soup = BeautifulSoup(content_tag.text, 'html.parser')
-                    body_clean = c_soup.get_text().strip().replace('\n', ' ')[:250]
-                posts.append({'title': title, 'link': link, 'content': body_clean})
-    except Exception:
-        pass
-
-    # Estratégia 2: Bypass Anti-Bloqueio via DuckDuckGo Search para Reddit (100% resiliente)
+    # Estratégia 2: Busca indexada DuckDuckGo (funciona para dúvidas livres e para subreddits)
     if not posts:
-        print("    🛡️ Ativando bypass inteligente via busca indexada para evitar rate limit...")
+        print("    🛡️ Consultando tópicos indexados e comunidades especializadas...")
         try:
             ddg_url = "https://html.duckduckgo.com/html/"
-            ddg_query = f"site:reddit.com/r/{clean_sub}"
+            if is_specific_sub:
+                ddg_query = f"site:reddit.com/r/{sub_name}"
+            else:
+                ddg_query = f"site:reddit.com {clean_input}"
+
             r_ddg = httpx.post(ddg_url, data={'q': ddg_query}, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0'}, timeout=8.0)
             if r_ddg.status_code == 200:
                 soup = BeautifulSoup(r_ddg.text, 'html.parser')
@@ -453,7 +460,7 @@ def execute_reddit_trends(subreddit=None, limit=10):
                     if "reddit.com" in link or snippet:
                         posts.append({'title': title, 'link': link, 'content': snippet})
         except Exception as e:
-            print(f"    ⚠️ Erro no bypass: {e}")
+            print(f"    ⚠️ Erro na consulta: {e}")
 
     if not posts:
         print("❌ Não foi possível carregar tópicos do Reddit no momento.")
