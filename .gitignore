@@ -10,4 +10,4 @@ venv/
 # Temporários de áudio ou dados
 temp_*
 *.json3
-output/
+*.mp3
