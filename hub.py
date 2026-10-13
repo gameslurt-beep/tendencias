@@ -512,6 +512,13 @@ def execute_cross_content_machine():
 # MENU PRINCIPAL INTERATIVO
 # ==============================================================================
 
+def execute_comment_analysis():
+    import comment_analyzer
+    url = input("\n👉 Digite a URL do vídeo para analisar os comentários: ").strip()
+    if not url:
+        return
+    comment_analyzer.run_comment_pipeline(url)
+
 def menu():
     while True:
         print("\n" + "=" * 65)
@@ -521,10 +528,11 @@ def menu():
         print("2. 🔍 Buscar Vídeos & Canais em Alta no YouTube por Nicho/Tema")
         print("3. 👽 Radar de Tendências do Reddit (Dores e Tópicos Quentes)")
         print("4. ⚡ Máquina Completa de Conteúdo (Reddit ➔ YouTube ➔ Ganchos)")
+        print("5. 💬 Raio-X de Sentimento e Debates em Comentários")
         print("0. ❌ Sair")
         print("=" * 65)
 
-        choice = input("👉 Escolha uma opção [0-4]: ").strip()
+        choice = input("👉 Escolha uma opção [0-5]: ").strip()
 
         if choice == "1":
             execute_youtube_channel_transcription()
@@ -534,6 +542,8 @@ def menu():
             execute_reddit_trends()
         elif choice == "4":
             execute_cross_content_machine()
+        elif choice == "5":
+            execute_comment_analysis()
         elif choice == "0":
             print("\n👋 Encerrando. Até logo!")
             break
