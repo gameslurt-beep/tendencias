@@ -371,11 +371,12 @@ def execute_youtube_niche_search(query=None, limit=10):
         channel_stats[u]['count'] += 1
         channel_stats[u]['views'] += v['view_count']
 
-    # Exibir canais dominantes
+    # Exibir canais dominantes com link direto
     print("\n👑 CANAIS DOMINANTES NESSE TEMA:")
     sorted_channels = sorted(channel_stats.items(), key=lambda x: x[1]['views'], reverse=True)
     for ch, data in sorted_channels[:5]:
-        print(f"   • {ch}: {data['views']:,} visualizações no total analisado ({data['count']} vídeo(s))")
+        ch_link = f" | 🔗 {data['url']}" if data.get('url') else ""
+        print(f"   • {ch}: {data['views']:,} visualizações ({data['count']} vídeo(s)){ch_link}")
 
     # Perguntar se deseja transcrever e extrair ganchos
     transcribe_opt = input("\n👉 Deseja transcrever e extrair os GANCHOS desses vídeos agora? (s/n) [Padrão: s]: ").strip().lower()
