@@ -287,7 +287,17 @@ def generate_report(analysis: dict, output_dir: str = "output/comentarios"):
     return report_path
 
 def run_comment_pipeline(video_url: str, max_comments: int = 150):
-    meta, comments = extract_comments_youtube(video_url, max_comments=max_comments)
+    url_clean = video_url.strip()
+    if "tiktok.com" in url_clean:
+        try:
+            import tiktok_extractor
+            meta, comments = tiktok_extractor.extract_tiktok_comments(url_clean, max_comments=max_comments)
+        except Exception as e:
+            print(f"❌ Erro no módulo do TikTok: {e}")
+            return None
+    else:
+        meta, comments = extract_comments_youtube(url_clean, max_comments=max_comments)
+
     if not comments:
         print("❌ Nenhum comentário disponível para análise.")
         return None
